@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Upload Form</title>
+</head>
+<body>
+
+<form id="studentForm">
+
+  <label>Nama Pelajar</label>
+  <input
+    type="text"
+    name="Nama Pelajar"
+    required>
+
+  <br><br>
+
+  <label>No Matrik</label>
+  <input
+    type="text"
+    name="No.Matrik"
+    required>
+
+  <br><br>
+
+  <label>Upload Resit (PDF / Image)</label>
+  <input
+    type="file"
+    id="receiptFile"
+    accept=".pdf,.jpg,.jpeg,.png,.webp"
+    required>
+
+  <br><br>
+
+  <button type="submit">
+    Hantar
+  </button>
+
+</form>
+
+<p id="status"></p>
+
+<script>
+
+const SCRIPT_URL =
+"https://script.google.com/macros/s/AKfycbyKqoj4-L9B_IIOlTu9ptaiBJh3lTSAYcdv3yhiVoeUz6Ca2S8zNQwOxVo78by7Bp8krQ/exec";
+
+const form = document.getElementById("studentForm");
+const status = document.getElementById("status");
+
+form.addEventListener("submit", async (e) => {
+
+  e.preventDefault();
+
+  status.innerText = "Uploading...";
+
+  try {
+
+    const file =
+      document.getElementById("receiptFile").files[0];
+
+    if (!file) {
+      throw new Error("Please select a file");
+    }
+
+    const allowedTypes = [
+      "application/pdf",
+      "image/jpeg",
+      "image/png",
+      "image/webp"
+    ];
+
+    if (!allowedTypes.includes(file.type)) {
+      throw new Error(
+        "Only PDF, JPG, PNG and WEBP files are allowed"
+      );
+    }
+
+    const base64 =
+      await fileToBase64(file);
+
+    const payload = {
+      "Nama Pelajar":
+        form.elements["Nama Pelajar"].value,
+
+      "No.Matrik":
+        form.elements["No.Matrik"].value,
+
+      fileData: {
+        fileName: file.name,
+        mimeType: file.type,
+        data: base64
+      }
+    };
+
+    const response = await fetch(
+      SCRIPT_URL,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload)
+      }
+    );
+
+    const result = await response.json();
+
+    console.log(result);
+
+    if (result.result === "success") {
+
+      status.innerHTML =
+        "✅ Submitted successfully";
+
+      form.reset();
+
+    } else {
+
+      status.innerHTML =
+        "❌ " + result.error;
+
+    }
+
+  } catch (err) {
+
+    console.error(err);
+
+    status.innerHTML =
+      "❌ " + err.message;
+
+  }
+
+});
+
+function fileToBase64(file) {
+
+  return new Promise((resolve, reject) => {
+
+    const reader = new FileReader();
+
+    reader.onload = () => {
+
+      const base64 =
+        reader.result.split(",")[1];
+
+      resolve(base64);
+
+    };
+
+    reader.onerror = reject;
+
+    reader.readAsDataURL(file);
+
+  });
+
+}
+
+</script>
+
+</body>
+</html>
